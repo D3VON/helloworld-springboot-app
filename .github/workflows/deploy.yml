@@ -1,0 +1,37 @@
+name: Deploy to Azure Web App
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy'
+        required: true
+        default: 'main'
+
+env:
+  AZURE_WEBAPP_NAME: helloworld-d3von # unique in Azure-land
+  RESOURCE_GROUP: D3VONRG
+  ACR_NAME: d3vonregistry
+  IMAGE_NAME: helloworldspringbootapp
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy container image
+        run: |
+          RAW_TAG="${{ github.event.inputs.branch }}"
+          TAG="${RAW_TAG//\//-}"  # Replace slashes with dashes
+          echo "Deploying image with tag: $TAG"
+          
+          az webapp config container set \
+            --name $AZURE_WEBAPP_NAME \
+            --resource-group $RESOURCE_GROUP \
+            --container-image-name $ACR_NAME.azurecr.io/$IMAGE_NAME:$TAG \
+            --container-registry-url https://$ACR_NAME.azurecr.io
